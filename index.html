@@ -74,8 +74,6 @@
         const Send = (props) => <IconBase {...props}><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></IconBase>;
         const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></IconBase>;
         const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>;
-        const Settings = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
-        const Lock = (props) => <IconBase {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></IconBase>;
 
         // --- DATASET ---
         const CARRIER_DATA = [
@@ -334,15 +332,9 @@
         );
 
         // --- API LOGIC ---
-        // Updated to use either a local key (preview) or Netlify proxy (production)
-        async function callGeminiAPI(currentInput, history, type, config) {
-            const { apiKey, useNetlifyProxy } = config;
+        // Force Netlify Proxy usage only
+        async function callGeminiAPI(currentInput, history, type) {
             
-            // Validation
-            if (!useNetlifyProxy && !apiKey) {
-                return "<p style='color:red'><b>API Key Missing.</b><br/>Click the gear icon (⚙️) in the top right to configure your API Key.</p>";
-            }
-
             const isTech = type === 'tech';
             
             const systemContext = isTech 
@@ -376,30 +368,16 @@
             };
 
             try {
-                let response;
-                
-                if (useNetlifyProxy) {
-                    // NETLIFY PRODUCTION MODE
-                    response = await fetch('/.netlify/functions/gemini', {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(requestBody)
-                    });
-                } else {
-                    // DIRECT/PREVIEW MODE
-                    response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(requestBody)
-                        }
-                    );
-                }
+                // ALWAYS USE NETLIFY PROXY
+                const response = await fetch('/.netlify/functions/gemini', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody)
+                });
 
                 if (!response.ok) {
-                    if (useNetlifyProxy && response.status === 404) {
-                        throw new Error("Netlify Function not found. Did you deploy 'gemini.js' to 'netlify/functions'?");
+                    if (response.status === 404) {
+                        throw new Error("Netlify Function not found (404). Ensure 'gemini.js' is in 'netlify/functions' folder.");
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -412,12 +390,12 @@
 
             } catch (error) {
                 console.error("Gemini API Error:", error);
-                return `<p style='color:red'><b>Connection Error</b><br/>${error.message}<br/>If using Proxy, ensure the function is deployed.</p>`;
+                return `<p style='color:red'><b>Connection Error</b><br/>${error.message}</p>`;
             }
         }
 
         // --- CHAT INTERFACE ---
-        const ChatInterface = ({ type, onSelectCarrier, messages, setMessages, onClear, config }) => {
+        const ChatInterface = ({ type, onSelectCarrier, messages, setMessages, onClear }) => {
             const [input, setInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const messagesEndRef = useRef(null);
@@ -439,7 +417,7 @@
                 setMessages(newHistory);
                 setIsLoading(true);
 
-                const responseText = await callGeminiAPI(userText, messages, type, config);
+                const responseText = await callGeminiAPI(userText, messages, type);
 
                 setMessages(prev => [...prev, { type: 'bot', text: responseText }]);
                 setIsLoading(false);
@@ -515,80 +493,13 @@
             );
         };
 
-        // --- CONFIG MODAL ---
-        const ConfigModal = ({ show, onClose, config, setConfig }) => {
-            if (!show) return null;
-            
-            const [localKey, setLocalKey] = useState(config.apiKey);
-            const [localUseProxy, setLocalUseProxy] = useState(config.useNetlifyProxy);
-
-            const handleSave = () => {
-                setConfig({ apiKey: localKey, useNetlifyProxy: localUseProxy });
-                localStorage.setItem('xfinity_port_config', JSON.stringify({ apiKey: localKey, useNetlifyProxy: localUseProxy }));
-                onClose();
-            };
-
-            return (
-                <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="bg-[#6138F5] p-4 flex justify-between items-center text-white">
-                            <h2 className="font-bold flex items-center gap-2"><Settings size={20} /> Settings</h2>
-                            <button onClick={onClose}><X size={20} /></button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            
-                            {/* Mode Toggle */}
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-bold text-slate-700">Use Netlify Proxy (Production)</label>
-                                <button 
-                                    onClick={() => setLocalUseProxy(!localUseProxy)}
-                                    className={`w-12 h-6 rounded-full transition-colors relative ${localUseProxy ? 'bg-[#6138F5]' : 'bg-slate-300'}`}
-                                >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${localUseProxy ? 'left-7' : 'left-1'}`}></div>
-                                </button>
-                            </div>
-
-                            {/* API Key Input */}
-                            <div className={`space-y-2 transition-opacity ${localUseProxy ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                                <label className="text-xs font-bold text-slate-500 uppercase">Google Gemini API Key</label>
-                                <div className="relative">
-                                    <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
-                                    <input 
-                                        type="password"
-                                        value={localKey}
-                                        onChange={(e) => setLocalKey(e.target.value)}
-                                        placeholder="Paste AIza... key here"
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-[#6138F5] outline-none"
-                                    />
-                                </div>
-                                <p className="text-[10px] text-slate-400">
-                                    {localUseProxy ? "Key is managed by Netlify Server." : "Key is stored securely in your browser's Local Storage."}
-                                </p>
-                            </div>
-
-                            <button onClick={handleSave} className="w-full bg-[#6138F5] text-white font-bold py-3 rounded-xl hover:bg-[#522ed1] transition-colors">
-                                Save Configuration
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         // --- MAIN APP COMPONENT ---
         const PortingAssistant = () => {
             const [showLegacy, setShowLegacy] = useState(false);
-            const [showSettings, setShowSettings] = useState(false);
             const [activeMobileTab, setActiveMobileTab] = useState('porting');
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedCarrier, setSelectedCarrier] = useState(null);
             
-            // Config State (Load from LocalStorage)
-            const [config, setConfig] = useState(() => {
-                const saved = localStorage.getItem('xfinity_port_config');
-                return saved ? JSON.parse(saved) : { apiKey: '', useNetlifyProxy: false };
-            });
-
             const [portingHistory, setPortingHistory] = useState([
                 { type: 'bot', text: "<p>Hi! I'm your <b>Porting Assistant</b>. I can find Account Numbers, PINs, and Unlock details for you.</p>" }
             ]);
@@ -614,14 +525,6 @@
                                 PORTING HUB
                             </span>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <button 
-                                onClick={() => setShowSettings(true)}
-                                className="text-white/70 hover:text-white transition-colors"
-                            >
-                                <Settings size={20} />
-                            </button>
-                        </div>
                     </header>
 
                     <main className="flex-1 relative flex flex-col md:flex-row p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full h-[calc(100vh-80px)] overflow-hidden">
@@ -635,7 +538,6 @@
                                     setMessages={setPortingHistory} 
                                     onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                     onClear={() => setPortingHistory([{ type: 'bot', text: "<p>Chat cleared. How can I help?</p>" }])}
-                                    config={config}
                                 />
                             </div>
                             <div className="flex-1 flex flex-col min-h-0 h-full">
@@ -645,7 +547,6 @@
                                     setMessages={setTechHistory} 
                                     onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                     onClear={() => setTechHistory([{ type: 'bot', text: "<p>Chat cleared. Ready for new issues.</p>" }])}
-                                    config={config}
                                 />
                             </div>
                         </div>
@@ -675,7 +576,6 @@
                                         setMessages={setPortingHistory} 
                                         onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                         onClear={() => setPortingHistory([{ type: 'bot', text: "<p>Chat cleared. How can I help?</p>" }])}
-                                        config={config}
                                     />
                                 ) : (
                                     <ChatInterface 
@@ -684,7 +584,6 @@
                                         setMessages={setTechHistory} 
                                         onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                         onClear={() => setTechHistory([{ type: 'bot', text: "<p>Chat cleared. Ready for new issues.</p>" }])}
-                                        config={config}
                                     />
                                 )}
                             </div>
@@ -706,14 +605,6 @@
                             </div>
                         </div>
                     </main>
-
-                    {/* CONFIG MODAL */}
-                    <ConfigModal 
-                        show={showSettings} 
-                        onClose={() => setShowSettings(false)} 
-                        config={config} 
-                        setConfig={setConfig} 
-                    />
 
                     {/* LEGACY MODAL */}
                     {showLegacy && (
