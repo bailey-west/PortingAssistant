@@ -28,11 +28,16 @@
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                     },
                     keyframes: {
                         fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '0%': { opacity: '0', transform: 'translateY(5px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(100%)' },
+                            '100%': { transform: 'translateY(0)' },
                         }
                     }
                 }
@@ -40,36 +45,20 @@
         }
     </script>
     <style>
-        /* Custom scrollbar for chat */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05);
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: rgba(97, 56, 245, 0.2);
-            border-radius: 10px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background: rgba(97, 56, 245, 0.5);
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(97, 56, 245, 0.2); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(97, 56, 245, 0.5); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 font-sans h-screen overflow-hidden selection:bg-[#6138F5] selection:text-white">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONFIGURATION ---
-        // WARNING: If hosting on public GitHub, restrict this key in Google Cloud Console to your specific domain.
-        const apiKey = "AIzaSyCRXLLyOKWL9eNoV62wScbbtA7IhHx1vek"; 
-
-        // --- ICONS (Inline SVG components to avoid dependencies) ---
+        // --- ICONS ---
         const IconBase = ({ size = 24, className = "", children }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
@@ -85,6 +74,8 @@
         const Send = (props) => <IconBase {...props}><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></IconBase>;
         const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></IconBase>;
         const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>;
+        const Settings = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
+        const Lock = (props) => <IconBase {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></IconBase>;
 
         // --- DATASET ---
         const CARRIER_DATA = [
@@ -94,30 +85,30 @@
                 keywords: ['verizon', 'vzw', 'postpaid'],
                 accountNumber: "10-digit number. Found on bill or online (My Verizon > Account > Account Settings). Do NOT include the '-00001' suffix.",
                 transferPin: "Dial #PORT (#7678) from the device. OR: My Verizon App > Account > Edit Profile & Settings > Number Transfer PIN. Valid for 7 days.",
-                tips: "Devices automatically unlock 60 days after purchase (even if not paid off). If leaving early, remaining device balance is billed on next cycle."
+                tips: "Devices automatically unlock 60 days after purchase. If leaving early, remaining device balance is billed on next cycle."
             },
             {
                 id: 'verizon-prepaid',
                 name: 'Verizon Prepaid',
                 keywords: ['verizon prepaid', 'vzw pre'],
                 accountNumber: "Sign in to My Verizon > Account Settings. It is NOT the phone number. Begins with 'A' on some older bills, but usually 10 digits.",
-                transferPin: "Dial #PORT (#7678) from the device. Valid for 7 days. If that fails, call 888-294-6804.",
+                transferPin: "Dial #PORT (#7678). Valid for 7 days. If fails, call 888-294-6804.",
                 tips: "Service is hard to verify without the active device. Ensure customer can receive texts."
             },
             {
                 id: 'att',
                 name: 'AT&T',
                 keywords: ['at&t', 'att', 'postpaid'],
-                accountNumber: "9 to 12 digits. Found on top right of bill (online or paper). AT&T reps generally will NOT provide this over the phone.",
-                transferPin: "Dial *PORT (*7678) from the device. OR: myAT&T App > More > Manage Profile > People & Permissions > Transfer Phone Number. Valid 4 days.",
-                tips: "Devices MUST be paid off to unlock. Request unlock at att.com/deviceunlock. Wait 48 hours after payoff before requesting."
+                accountNumber: "9 to 12 digits. Top right of bill (online or paper). AT&T reps generally will NOT provide this over the phone.",
+                transferPin: "Dial *PORT (*7678). OR: myAT&T App > More > Manage Profile > People & Permissions > Transfer Phone Number. Valid 4 days.",
+                tips: "Devices MUST be paid off to unlock. Request at att.com/deviceunlock. Wait 48h after payoff."
             },
             {
                 id: 'att-prepaid',
                 name: 'AT&T Prepaid',
                 keywords: ['at&t prepaid', 'att pre', 'gophone'],
-                accountNumber: "Account Number is HIDDEN. You MUST call 800-901-9878. Press 00 or say 'More Options' to reach agent. Verify with PIN.",
-                transferPin: "There is NO Transfer PIN. Use the 4-digit Account Security PIN (used to login/call in). Reset at paygonline.com if unknown.",
+                accountNumber: "Account # is HIDDEN. You MUST call 800-901-9878. Press 00 or say 'More Options' to reach agent.",
+                transferPin: "No Transfer PIN. Use the 4-digit Account Security PIN (used to login/call). Reset at paygonline.com if unknown.",
                 tips: "Devices locked for 6 months of active service. Request unlock via portal."
             },
             {
@@ -125,8 +116,8 @@
                 name: 'T-Mobile',
                 keywords: ['t-mobile', 'tmobile', 'tmo', 'postpaid'],
                 accountNumber: "9-digit number found on bill or T-Mobile app (Account > Profile).",
-                transferPin: "T-Mobile App > Account > Profile Settings > Line Settings > Request a Transfer PIN. Valid 7 days. Primary account holder login required.",
-                tips: "Devices unlock automatically after payoff + 40 days on network. Check status in settings."
+                transferPin: "T-Mobile App > Account > Profile Settings > Line Settings > Request a Transfer PIN. Valid 7 days.",
+                tips: "Devices unlock automatically after payoff + 40 days on network."
             },
             {
                 id: 'tmobile-prepaid',
@@ -140,40 +131,24 @@
                 id: 'straight-talk',
                 name: 'Straight Talk',
                 keywords: ['straight talk', 'straighttalk', 'tracfone'],
-                accountNumber: "Almost always the IMEI of the device. If BYOD (Bring Your Own Device), it might be the last 15 digits of SIM. Text 'FOUR' to 611611 to verify last 4 digits.",
-                transferPin: "Text 'NTP' to 611611. This is MANDATORY. The online login PIN will not work for porting.",
-                tips: "Zip Code often defaults to Miami, FL (33178) if customer never registered one. Try that if zip error occurs."
+                accountNumber: "Almost always the IMEI. If BYOD, might be last 15 of SIM. Text 'FOUR' to 611611 to verify last 4 digits.",
+                transferPin: "Text 'NTP' to 611611. MANDATORY. Online login PIN will NOT work.",
+                tips: "Zip Code often defaults to Miami, FL (33178) if customer never registered one."
             },
             {
                 id: 'net10',
                 name: 'Net 10',
                 keywords: ['net10', 'net 10'],
-                accountNumber: "IMEI/MEID of the phone, or last 15 digits of ICCID (SIM).",
-                transferPin: "Usually '0000' or the last 4 digits of the phone number.",
-                tips: "Text 611611 for help."
-            },
-            {
-                id: 'page-plus',
-                name: 'Page Plus',
-                keywords: ['page plus', 'pageplus'],
-                accountNumber: "IMEI of the device (or 10-digit phone number if account is very old).",
-                transferPin: "Last 4 digits of account number (or try 1234).",
-                tips: "See unlock policy on website."
-            },
-            {
-                id: 'simple-mobile',
-                name: 'Simple Mobile',
-                keywords: ['simple mobile'],
-                accountNumber: "Last 15 digits of the ICCID (SIM card number).",
-                transferPin: "Text 'NTP' to 611611. (Fallback: Last 4 of ICCID).",
-                tips: "Call 877-878-7908 if issues persist."
+                accountNumber: "IMEI/MEID of phone, or last 15 digits of ICCID (SIM).",
+                transferPin: "Text 'NTP' to 611611.",
+                tips: "Part of the Tracfone family."
             },
             {
                 id: 'spectrum',
                 name: 'Spectrum Mobile',
                 keywords: ['spectrum', 'spectrum mobile'],
-                accountNumber: "Found on PDF Bill statement (top left). NOT shown on main dashboard.",
-                transferPin: "Found on PDF Bill statement (Security Code). OR: Account > Services > Mobile > Settings > Get Port Out PIN.",
+                accountNumber: "Found on PDF Bill (top left). NOT on main dashboard.",
+                transferPin: "Found on PDF Bill (Security Code). OR: Account > Services > Mobile > Settings > Get Port Out PIN.",
                 tips: "Uses Verizon towers. Devices auto-unlock after 60 days."
             },
             {
@@ -181,14 +156,14 @@
                 name: 'Cricket',
                 keywords: ['cricket'],
                 accountNumber: "Found in App or Website. If trouble, call 800-274-2538.",
-                transferPin: "Dial *PORT (*7678) from device. OR: App > Account Settings > Number Transfer PIN. Valid 5 days.",
+                transferPin: "Dial *PORT (*7678). OR: App > Account Settings > Number Transfer PIN. Valid 5 days.",
                 tips: "Devices locked for 6 months. Unlock via App (myCricket > Unlock Device)."
             },
             {
                 id: 'mint',
                 name: 'Mint Mobile',
                 keywords: ['mint', 'mint mobile'],
-                accountNumber: "HIDDEN. You must chat with the 'Fox Bot' at mintmobile.com/chat. Type 'Port Out' to get connected to a live agent.",
+                accountNumber: "HIDDEN. Chat with 'Fox Bot' at mintmobile.com/chat. Type 'Port Out' to get connected to agent.",
                 transferPin: "Provided by live agent via Chat only.",
                 tips: "Account number is NOT the phone number."
             },
@@ -197,32 +172,32 @@
                 name: 'Google Voice',
                 keywords: ['google voice', 'gv'],
                 accountNumber: "The 10-digit phone number (no dashes).",
-                transferPin: "The Voicemail PIN (often 4 digits). Access Settings > Voicemail to reset.",
-                tips: "CRITICAL: You MUST pay $3 to unlock the number at voice.google.com/billing before porting. Takes 24-72 hours."
+                transferPin: "The Voicemail PIN. Access Settings > Voicemail to reset.",
+                tips: "CRITICAL: MUST pay $3 to unlock at voice.google.com/billing before porting. Takes 24-72 hours."
             },
             {
                 id: 'google-fi',
                 name: 'Google Fi',
                 keywords: ['google fi', 'fi'],
-                accountNumber: "App > Account > Manage Plan > Leave Google Fi. It will generate the Acct #.",
-                transferPin: "App > Account > Manage Plan > Leave Google Fi. It will generate the PIN.",
-                tips: "Cancels service immediately. Do not do this until ready to activate Xfinity."
+                accountNumber: "App > Account > Manage Plan > Leave Google Fi. Generates Acct #.",
+                transferPin: "App > Account > Manage Plan > Leave Google Fi. Generates PIN.",
+                tips: "Cancels service immediately. Do not do until ready to activate."
             },
             {
                 id: 'boost',
                 name: 'Boost Mobile',
                 keywords: ['boost', 'boost mobile', 'dish'],
-                accountNumber: "Call 833-502-6678. Navigate to 'Tech Support' to reach agent. Requires 4-digit Security PIN.",
-                transferPin: "The 4-digit Security PIN created when account was opened.",
-                tips: "Boost Infinite (Postpaid) may have a Transfer PIN in the app. Legacy Boost requires calling."
+                accountNumber: "Call 833-502-6678 (Tech Support). Requires 4-digit Security PIN.",
+                transferPin: "The 4-digit Security PIN created when account opened.",
+                tips: "Boost Infinite (Postpaid) may have PIN in app. Legacy Boost requires calling."
             },
             {
                 id: 'metro',
                 name: 'Metro by T-Mobile',
                 keywords: ['metro', 'metro by t-mobile', 'metropcs'],
                 accountNumber: "Found in 'My Account' online or billing texts.",
-                transferPin: "App/Web > Account > Request Transfer PIN. Sent via SMS. Do NOT use the 8-digit security PIN.",
-                tips: "Phone must be active to receive the SMS."
+                transferPin: "App/Web > Account > Request Transfer PIN. Sent via SMS.",
+                tips: "Phone must be active to receive SMS."
             },
             {
                 id: 'visible',
@@ -230,15 +205,15 @@
                 keywords: ['visible'],
                 accountNumber: "App > Account > Port-Out PIN. Sent to email.",
                 transferPin: "App > Account > Port-Out PIN. Sent to email.",
-                tips: "Strict limit of 3 PIN requests per 24 hours. Check Spam folder."
+                tips: "Strict limit of 3 PIN requests per 24 hours."
             },
             {
                 id: 'consumer-cellular',
                 name: 'Consumer Cellular',
                 keywords: ['consumer cellular', 'cc'],
-                accountNumber: "Found in Online Profile or call 888-750-5519. (9 digits).",
+                accountNumber: "Online Profile or call 888-750-5519. (9 digits).",
                 transferPin: "Call customer service to generate.",
-                tips: "Requires last 4 of SSN. Ports are frequently 'held' and require a call to CC Porting Dept to release."
+                tips: "Requires last 4 of SSN. Ports often 'held' and require call to CC Porting Dept."
             },
             {
                 id: 'us-cellular',
@@ -253,48 +228,8 @@
                 name: 'Lively',
                 keywords: ['lively', 'jitterbug'],
                 accountNumber: "Sign into 'My Account' online.",
-                transferPin: "Dial #7678 from the phone. You will receive a text with the 6-digit PIN.",
+                transferPin: "Dial #7678. You will receive text with 6-digit PIN.",
                 tips: "Call 800-733-6632 for support."
-            },
-            {
-                id: 'credo',
-                name: 'CREDO Mobile',
-                keywords: ['credo'],
-                accountNumber: "Text ACCOUNT to 27336. Also found on bill. It is the Member Number.",
-                transferPin: "Call 800-411-0848. Press 2 for tech support to request it.",
-                tips: "Device must be paid off."
-            },
-            {
-                id: 'us-mobile',
-                name: 'US Mobile',
-                keywords: ['us mobile'],
-                accountNumber: "Call 1-888-848-1788 or email help@usmobile.com.",
-                transferPin: "Try 1234. If that fails, call support.",
-                tips: "Ports may need manual release."
-            },
-            {
-                id: 'republic',
-                name: 'Republic Wireless',
-                keywords: ['republic', 'republic wireless'],
-                accountNumber: "Online Portal > Manage Line > Transfer My Number Out.",
-                transferPin: "Call Republic Care at 866-550-9843.",
-                tips: "Porting can take up to 7 days."
-            },
-            {
-                id: 'hello',
-                name: 'Hello Mobile',
-                keywords: ['hello', 'hello mobile'],
-                accountNumber: "Top right corner of online account. Or call 888-954-3556.",
-                transferPin: "Last 4 digits of the Hello Mobile telephone number.",
-                tips: "Dial 611 for support."
-            },
-            {
-                id: 'telcel',
-                name: 'Telcel',
-                keywords: ['telcel'],
-                accountNumber: "MEID or IMEI of phone, or last 15 of SIM card.",
-                transferPin: "Online > Update Personal Profile > Current Security PIN. If blank, set one up.",
-                tips: "Call 800-220-9518."
             },
             {
                 id: 'xfinity',
@@ -399,21 +334,29 @@
         );
 
         // --- API LOGIC ---
-        async function callGeminiAPI(currentInput, history, type) {
+        // Updated to use either a local key (preview) or Netlify proxy (production)
+        async function callGeminiAPI(currentInput, history, type, config) {
+            const { apiKey, useNetlifyProxy } = config;
+            
+            // Validation
+            if (!useNetlifyProxy && !apiKey) {
+                return "<p style='color:red'><b>API Key Missing.</b><br/>Click the gear icon (⚙️) in the top right to configure your API Key.</p>";
+            }
+
             const isTech = type === 'tech';
             
             const systemContext = isTech 
                 ? `You are an expert Xfinity Mobile Technical Support Assistant. 
                    INSTRUCTIONS:
-                   1. OUTPUT FORMAT: You must return your answer in valid HTML. Use <p> for paragraphs, <b> for bold text, and <ul><li> for lists. Do NOT use Markdown (no **, no #).
+                   1. OUTPUT FORMAT: You must return your answer in valid HTML. Use <p> for paragraphs, <b> for bold text, and <ul><li> for lists. Do NOT use Markdown.
                    2. BEHAVIOR: Use Google Search to find current outages or specific device steps. 
                    3. TONE: Be concise and professional.`
                 : `You are an expert Xfinity Mobile Porting Assistant. 
                    INTERNAL DATA: ${JSON.stringify(CARRIER_DATA)}. 
                    CRITICAL PROTOCOL:
-                   1. **OUTPUT FORMAT**: You must return your answer in valid HTML. Use <p> for paragraphs, <b> for bold text, and <ul><li> for lists. Do NOT use Markdown (no **, no #).
-                   2. **RESEARCH**: If the info is not in Internal Data (e.g. unlisted carrier or specific unlock policy), you MUST use the Google Search tool.
-                   3. **DIRECT ANSWER**: Do NOT narrate your search (e.g., "I will check..."). Just perform the search silently and output the final answer immediately.
+                   1. **OUTPUT FORMAT**: You must return your answer in valid HTML. Use <p> for paragraphs, <b> for bold text, and <ul><li> for lists. Do NOT use Markdown.
+                   2. **RESEARCH**: If the info is not in Internal Data, you MUST use the Google Search tool.
+                   3. **DIRECT ANSWER**: Do NOT narrate your search. Output the final answer immediately.
                    4. **FORMAT**: Highlight key info (Account #, PIN) using <b> tags.`;
 
             const formattedHistory = history.map(msg => ({
@@ -426,49 +369,64 @@
                 { role: 'user', parts: [{ text: currentInput }] }
             ];
 
+            const requestBody = {
+                contents: contents,
+                systemInstruction: { parts: [{ text: systemContext }] },
+                tools: [{ google_search: {} }] 
+            };
+
             try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-                    {
+                let response;
+                
+                if (useNetlifyProxy) {
+                    // NETLIFY PRODUCTION MODE
+                    response = await fetch('/.netlify/functions/gemini', {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: contents,
-                            systemInstruction: { parts: [{ text: systemContext }] },
-                            tools: [{ google_search: {} }] 
-                        }),
-                    }
-                );
+                        body: JSON.stringify(requestBody)
+                    });
+                } else {
+                    // DIRECT/PREVIEW MODE
+                    response = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(requestBody)
+                        }
+                    );
+                }
 
-                if (!response.ok) throw new Error("API call failed");
+                if (!response.ok) {
+                    if (useNetlifyProxy && response.status === 404) {
+                        throw new Error("Netlify Function not found. Did you deploy 'gemini.js' to 'netlify/functions'?");
+                    }
+                    throw new Error(`API Error: ${response.status}`);
+                }
 
                 const data = await response.json();
                 let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 
-                if (!text) text = "<p>I'm having trouble connecting to the network right now. Please check the Legacy Playbook below.</p>";
+                if (!text) text = "<p>I'm having trouble connecting. Please check the Legacy Playbook below.</p>";
                 return text;
 
             } catch (error) {
                 console.error("Gemini API Error:", error);
-                if (isTech) return "<p>I'm currently in offline mode. For tech issues, try a <b>Network Reset</b> (Settings > General > Reset).</p>";
-                return "<p>I'm currently in offline mode. Please check the <b>Legacy Playbook</b> button below for manual carrier cards.</p>";
+                return `<p style='color:red'><b>Connection Error</b><br/>${error.message}<br/>If using Proxy, ensure the function is deployed.</p>`;
             }
         }
 
         // --- CHAT INTERFACE ---
-        const ChatInterface = ({ type, onSelectCarrier, messages, setMessages, onClear }) => {
+        const ChatInterface = ({ type, onSelectCarrier, messages, setMessages, onClear, config }) => {
             const [input, setInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const messagesEndRef = useRef(null);
-            const chatContainerRef = useRef(null);
             
             const isTech = type === 'tech';
 
-            const scrollToBottom = () => {
+            useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            };
-
-            useEffect(scrollToBottom, [messages, isLoading]);
+            }, [messages, isLoading]);
 
             const handleSend = async (e) => {
                 e.preventDefault();
@@ -481,7 +439,7 @@
                 setMessages(newHistory);
                 setIsLoading(true);
 
-                const responseText = await callGeminiAPI(userText, messages, type);
+                const responseText = await callGeminiAPI(userText, messages, type, config);
 
                 setMessages(prev => [...prev, { type: 'bot', text: responseText }]);
                 setIsLoading(false);
@@ -503,10 +461,7 @@
                         </button>
                     </div>
 
-                    <div 
-                        ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto p-4 space-y-4 bg-white/50 scroll-smooth min-h-0 custom-scroll"
-                    >
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white/50 scroll-smooth min-h-0 custom-scroll">
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 p-8 opacity-60">
                                 {isTech ? <Wrench size={48} className="mb-4 text-slate-200"/> : <Smartphone size={48} className="mb-4 text-slate-200"/>}
@@ -560,12 +515,79 @@
             );
         };
 
+        // --- CONFIG MODAL ---
+        const ConfigModal = ({ show, onClose, config, setConfig }) => {
+            if (!show) return null;
+            
+            const [localKey, setLocalKey] = useState(config.apiKey);
+            const [localUseProxy, setLocalUseProxy] = useState(config.useNetlifyProxy);
+
+            const handleSave = () => {
+                setConfig({ apiKey: localKey, useNetlifyProxy: localUseProxy });
+                localStorage.setItem('xfinity_port_config', JSON.stringify({ apiKey: localKey, useNetlifyProxy: localUseProxy }));
+                onClose();
+            };
+
+            return (
+                <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="bg-[#6138F5] p-4 flex justify-between items-center text-white">
+                            <h2 className="font-bold flex items-center gap-2"><Settings size={20} /> Settings</h2>
+                            <button onClick={onClose}><X size={20} /></button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            
+                            {/* Mode Toggle */}
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-bold text-slate-700">Use Netlify Proxy (Production)</label>
+                                <button 
+                                    onClick={() => setLocalUseProxy(!localUseProxy)}
+                                    className={`w-12 h-6 rounded-full transition-colors relative ${localUseProxy ? 'bg-[#6138F5]' : 'bg-slate-300'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${localUseProxy ? 'left-7' : 'left-1'}`}></div>
+                                </button>
+                            </div>
+
+                            {/* API Key Input */}
+                            <div className={`space-y-2 transition-opacity ${localUseProxy ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Google Gemini API Key</label>
+                                <div className="relative">
+                                    <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                                    <input 
+                                        type="password"
+                                        value={localKey}
+                                        onChange={(e) => setLocalKey(e.target.value)}
+                                        placeholder="Paste AIza... key here"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-[#6138F5] outline-none"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400">
+                                    {localUseProxy ? "Key is managed by Netlify Server." : "Key is stored securely in your browser's Local Storage."}
+                                </p>
+                            </div>
+
+                            <button onClick={handleSave} className="w-full bg-[#6138F5] text-white font-bold py-3 rounded-xl hover:bg-[#522ed1] transition-colors">
+                                Save Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- MAIN APP COMPONENT ---
         const PortingAssistant = () => {
             const [showLegacy, setShowLegacy] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
             const [activeMobileTab, setActiveMobileTab] = useState('porting');
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedCarrier, setSelectedCarrier] = useState(null);
+            
+            // Config State (Load from LocalStorage)
+            const [config, setConfig] = useState(() => {
+                const saved = localStorage.getItem('xfinity_port_config');
+                return saved ? JSON.parse(saved) : { apiKey: '', useNetlifyProxy: false };
+            });
 
             const [portingHistory, setPortingHistory] = useState([
                 { type: 'bot', text: "<p>Hi! I'm your <b>Porting Assistant</b>. I can find Account Numbers, PINs, and Unlock details for you.</p>" }
@@ -592,8 +614,13 @@
                                 PORTING HUB
                             </span>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Built by Bailey West</p>
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={() => setShowSettings(true)}
+                                className="text-white/70 hover:text-white transition-colors"
+                            >
+                                <Settings size={20} />
+                            </button>
                         </div>
                     </header>
 
@@ -608,6 +635,7 @@
                                     setMessages={setPortingHistory} 
                                     onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                     onClear={() => setPortingHistory([{ type: 'bot', text: "<p>Chat cleared. How can I help?</p>" }])}
+                                    config={config}
                                 />
                             </div>
                             <div className="flex-1 flex flex-col min-h-0 h-full">
@@ -617,6 +645,7 @@
                                     setMessages={setTechHistory} 
                                     onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                     onClear={() => setTechHistory([{ type: 'bot', text: "<p>Chat cleared. Ready for new issues.</p>" }])}
+                                    config={config}
                                 />
                             </div>
                         </div>
@@ -646,6 +675,7 @@
                                         setMessages={setPortingHistory} 
                                         onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                         onClear={() => setPortingHistory([{ type: 'bot', text: "<p>Chat cleared. How can I help?</p>" }])}
+                                        config={config}
                                     />
                                 ) : (
                                     <ChatInterface 
@@ -654,6 +684,7 @@
                                         setMessages={setTechHistory} 
                                         onSelectCarrier={(c) => { setSelectedCarrier(c); setShowLegacy(true); }}
                                         onClear={() => setTechHistory([{ type: 'bot', text: "<p>Chat cleared. Ready for new issues.</p>" }])}
+                                        config={config}
                                     />
                                 )}
                             </div>
@@ -675,6 +706,14 @@
                             </div>
                         </div>
                     </main>
+
+                    {/* CONFIG MODAL */}
+                    <ConfigModal 
+                        show={showSettings} 
+                        onClose={() => setShowSettings(false)} 
+                        config={config} 
+                        setConfig={setConfig} 
+                    />
 
                     {/* LEGACY MODAL */}
                     {showLegacy && (
